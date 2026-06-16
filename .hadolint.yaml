@@ -1,0 +1,6 @@
+# hadolint configuration — https://github.com/hadolint/hadolint
+ignored:
+  - DL3008 # apt package versions are intentionally unpinned (Renovate doesn't manage them; the base image is digest-pinned instead)
+  - DL3006 # `FROM bl31-${BL31_KIND}` / `tee-${OPTEE}` / `ddr-${DDR_KIND}` select build stages, not untagged registry images
+  - DL4006 # pipefail IS set via SHELL in the base stage and inherited by every child stage; hadolint doesn't model cross-stage SHELL inheritance
+  - SC2012 # the rkbin blob filenames are controlled, so `ls | sort` is safe here

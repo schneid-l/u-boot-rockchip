@@ -1,0 +1,58 @@
+{
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  extends: [
+    'config:recommended',
+    // Pin every GitHub Action to a commit SHA and keep the SHA updated.
+    'helpers:pinGitHubActionDigests',
+    // Pin Docker base images by digest and keep the digest updated.
+    'docker:pinDigests',
+    ':dependencyDashboard',
+    ':semanticCommits',
+  ],
+
+  // Fully hands-off: CI validates the build, then Renovate merges on green.
+  // This only ever applies to Renovate's own (non-draft) PRs; nothing else is
+  // auto-merged, and a merge to `main` is what cuts a new signed release.
+  // Native auto-merge is safe because `main` requires the CI status check, so a
+  // PR cannot merge before CI passes.
+  automerge: true,
+  platformAutomerge: true,
+  prCreation: 'immediate',
+  prHourlyLimit: 0,
+
+  customManagers: [
+    {
+      customType: 'regex',
+      description: 'U-Boot and ATF release tags pinned as Dockerfile ARGs',
+      managerFilePatterns: ['/(^|/)Dockerfile$/'],
+      matchStrings: [
+        '# renovate: datasource=(?<datasource>github-tags) depName=(?<depName>\\S+) packageName=(?<packageName>\\S+) versioning=(?<versioning>[a-z-]+)\\s+ARG \\w+_VERSION=(?<currentValue>\\S+)',
+      ],
+    },
+    {
+      customType: 'regex',
+      description: 'rkbin commit pin (upstream has no tags, so master is pinned by digest)',
+      managerFilePatterns: ['/(^|/)Dockerfile$/'],
+      matchStrings: [
+        '# renovate: datasource=(?<datasource>git-refs) depName=(?<depName>\\S+) packageName=(?<packageName>\\S+) currentValue=(?<currentValue>\\S+)\\s+ARG \\w+_REF=(?<currentDigest>\\S+)',
+      ],
+    },
+  ],
+
+  packageRules: [
+    {
+      // Never build pre-releases (-rc) of U-Boot, ATF or OP-TEE.
+      matchManagers: ['custom.regex'],
+      matchDepNames: ['u-boot', 'arm-trusted-firmware', 'arm-trusted-firmware-legacy', 'optee_os'],
+      allowedVersions: '!/-rc/',
+    },
+    {
+      // rk3328/rk3368/rk3399 do not build on TF-A releases after v2.12 (their
+      // 4 KB PMUSRAM region overflows — an upstream issue, still present on
+      // master). Hold this pin; a maintainer bumps it once upstream is fixed.
+      matchManagers: ['custom.regex'],
+      matchDepNames: ['arm-trusted-firmware-legacy'],
+      enabled: false,
+    },
+  ],
+}

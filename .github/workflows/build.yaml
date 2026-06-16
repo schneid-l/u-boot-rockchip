@@ -1,0 +1,395 @@
+name: Build & Release U-Boot (Rockchip)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+  workflow_dispatch:
+
+env:
+  SOURCE_DATE_EPOCH: "1712055538"
+
+permissions: {}
+
+# Serialize runs on main so releases queue instead of cancelling each other;
+# still cancel superseded PR builds.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  # The workflow always runs (so the required "CI" check always reports), but the
+  # expensive jobs only run when build-relevant files change.
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      build: ${{ steps.decide.outputs.build }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Filter build-relevant paths
+        if: github.event_name != 'workflow_dispatch'
+        id: filter
+        uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
+        with:
+          filters: |
+            build:
+              - Dockerfile
+              - boards.json
+              - scripts/build-uboot.sh
+              - scripts/gen-matrix.sh
+      - name: Decide
+        id: decide
+        run: |
+          if [ "${{ github.event_name }}" = workflow_dispatch ] || [ "${{ steps.filter.outputs.build }}" = true ]; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "build=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  matrix:
+    name: Generate build matrix
+    needs: changes
+    if: needs.changes.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      matrix: ${{ steps.gen.outputs.matrix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+      - name: Expand boards.json into a job matrix
+        id: gen
+        run: echo "matrix=$(./scripts/gen-matrix.sh)" >> "$GITHUB_OUTPUT"
+
+  check-boards:
+    name: Validate board list
+    needs: changes
+    if: needs.changes.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+      - name: Check every defconfig still exists upstream
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./scripts/check-boards.sh
+
+  gate:
+    name: Release gate
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      release: ${{ steps.decide.outputs.release }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Decide
+        id: decide
+        env:
+          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT" = workflow_dispatch ]; then
+            echo "release=true" >> "$GITHUB_OUTPUT"; echo "manual run → release"; exit 0
+          fi
+          # Default to releasing; only downgrade when BEFORE is a real ancestor and
+          # the diff succeeds, so a rewritten history or a git error never silently
+          # skips a release.
+          release=true
+          if git merge-base --is-ancestor "$BEFORE" "$SHA" 2>/dev/null && diff=$(git diff "$BEFORE" "$SHA" -- .); then
+            # Chore-only push: every changed line is a base-image / syntax digest pin.
+            nonchore=$(printf '%s\n' "$diff" \
+              | grep -E '^[-+]' | grep -vE '^(\+\+\+|---) ' \
+              | grep -vE '^[-+](FROM .+@sha256:|# syntax=.+@sha256:)' || true)
+            [ -z "$(printf '%s' "$nonchore" | tr -d '[:space:]')" ] && release=false
+          fi
+          echo "release=$release" >> "$GITHUB_OUTPUT"
+          echo "release decision: $release"
+
+  build:
+    name: Build ${{ matrix.title }}
+    needs: [changes, matrix]
+    # Trusted PRs only: Renovate, an owner-authored PR, or the repo owner applying
+    # the "build" label. Pushes to main and manual runs always build.
+    if: >-
+      needs.changes.outputs.build == 'true' &&
+      (github.event_name != 'pull_request' ||
+       github.event.pull_request.user.login == 'renovate[bot]' ||
+       github.event.pull_request.author_association == 'OWNER' ||
+       (github.event.action == 'labeled' &&
+        github.event.label.name == 'build' &&
+        github.actor == github.repository_owner))
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write # push/pull the ghcr.io build cache
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.matrix.outputs.matrix) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
+
+      - name: Log in to ghcr.io (build cache)
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Restore ccache
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: ccache
+          key: ccache-${{ matrix.soc }}${{ matrix.suffix }}-${{ github.run_id }}
+          restore-keys: |
+            ccache-${{ matrix.soc }}${{ matrix.suffix }}-
+
+      - name: Inject ccache into the build
+        uses: reproducible-containers/buildkit-cache-dance@5422eac04292c961a382e0f584ea0f03ad9da723 # v3.4.0
+        with:
+          cache-map: |
+            { "ccache": "/root/.cache/ccache" }
+
+      - name: Build ${{ matrix.title }}
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/arm64
+          target: export
+          outputs: type=local,dest=./out
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}/buildcache:${{ matrix.soc }}${{ matrix.suffix }}
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository }}/buildcache:${{ matrix.soc }}${{ matrix.suffix }},mode=max,image-manifest=true,oci-mediatypes=true,compression=zstd,ignore-error=true
+          build-args: |
+            SOURCE_DATE_EPOCH=${{ env.SOURCE_DATE_EPOCH }}
+            SOC=${{ matrix.soc }}
+            DEFCONFIGS=${{ matrix.defconfigs }}
+            DDR_KIND=${{ matrix.ddr_kind }}
+            DDR_SUBDIR=${{ matrix.ddr_subdir }}
+            DDR_GLOB=${{ matrix.ddr_glob }}
+            BL31_KIND=${{ matrix.bl31_kind }}
+            ATF_PLAT=${{ matrix.atf_plat }}
+            ATF_TRACK=${{ matrix.atf_track }}
+            BL31_GLOB=${{ matrix.bl31_glob }}
+            OPTEE=${{ matrix.optee }}
+            OPTEE_PLATFORM=${{ matrix.optee_platform }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: u-boot-${{ matrix.soc }}${{ matrix.suffix }}
+          path: ./out/*
+          if-no-files-found: error
+
+  # Single required status check: green when every needed job passed or was
+  # legitimately skipped (e.g. nothing build-relevant changed).
+  ci:
+    name: CI
+    needs: [changes, matrix, check-boards, build]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Aggregate required checks
+        run: |
+          for r in "${{ needs.changes.result }}" "${{ needs.matrix.result }}" \
+                   "${{ needs.check-boards.result }}" "${{ needs.build.result }}"; do
+            case "$r" in
+              success|skipped) ;;
+              *) echo "::error::a required CI job did not pass ($r)"; exit 1 ;;
+            esac
+          done
+          echo "all required CI jobs passed"
+
+  release:
+    name: Sign & Release
+    needs: [build, gate]
+    if: >-
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event_name == 'push' && github.ref == 'refs/heads/main')) &&
+      needs.gate.outputs.release == 'true'
+    runs-on:
+      - ubicloud-standard-2-arm
+    permissions:
+      contents: write # create / update the GitHub Release
+      id-token: write # cosign keyless signing + SLSA provenance (Sigstore OIDC)
+      attestations: write # SLSA provenance attestation
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
+        with:
+          subject-path: artifacts/*.bin
+
+      - name: Read build manifests
+        id: meta
+        run: |
+          manifest=$(printf '%s\n' artifacts/*.manifest.json | head -n1)
+          if [ ! -f "$manifest" ]; then
+            echo "::error::No build manifest found among the artifacts"; exit 1
+          fi
+          uboot=$(jq -r '.u_boot_version' "$manifest")
+          if [ -z "$uboot" ] || [ "$uboot" = "null" ]; then
+            echo "::error::u_boot_version missing from $manifest"; exit 1
+          fi
+          if [ "$(jq -rs '[.[].u_boot_version] | unique | length' artifacts/*.manifest.json)" != 1 ]; then
+            echo "::error::build manifests disagree on u_boot_version"; exit 1
+          fi
+          {
+            echo "uboot=$uboot"
+            echo "rkbin_ref=$(jq -r '.rkbin_ref' "$manifest")"
+            echo "ubuntu=$(jq -r '.ubuntu_version' "$manifest")"
+            echo "bins=$(printf '%s\n' artifacts/*.bin | wc -l | tr -d ' ')"
+            echo "atf=$(jq -rs '[.[]|select(.bl31_source=="arm-trusted-firmware").bl31_version]|unique|sort|join(" / ")' artifacts/*.manifest.json)"
+            echo "rkbin_bl31=$(jq -rs '[.[]|select(.bl31_source=="rkbin").bl31_version]|unique|sort|join(" / ")' artifacts/*.manifest.json)"
+            echo "optee=$(jq -rs 'map(.optee_version) | map(select(. != "none")) | (unique | .[0] // "none")' artifacts/*.manifest.json)"
+          } >> "$GITHUB_OUTPUT"
+          echo "Releasing U-Boot $uboot"
+
+      - name: Generate checksums and SBOM
+        env:
+          UBOOT: ${{ steps.meta.outputs.uboot }}
+          ATF: ${{ steps.meta.outputs.atf }}
+          RKBIN_BL31: ${{ steps.meta.outputs.rkbin_bl31 }}
+          OPTEE: ${{ steps.meta.outputs.optee }}
+          RKBIN_REF: ${{ steps.meta.outputs.rkbin_ref }}
+          UBUNTU: ${{ steps.meta.outputs.ubuntu }}
+        run: |
+          ( cd artifacts && sha256sum -- *.bin > SHA256SUMS )
+          jq -n \
+            --arg uboot "$UBOOT" --arg atf "$ATF" --arg rkbin_bl31 "$RKBIN_BL31" \
+            --arg optee "$OPTEE" --arg rkbin_ref "$RKBIN_REF" --arg ubuntu "$UBUNTU" \
+            '{
+              bomFormat: "CycloneDX",
+              specVersion: "1.5",
+              version: 1,
+              metadata: { component: { type: "firmware", name: "u-boot-rockchip", version: $uboot } },
+              components: [
+                { type: "firmware", name: "u-boot", version: $uboot, purl: ("pkg:github/u-boot/u-boot@" + $uboot) },
+                { type: "firmware", name: "arm-trusted-firmware", version: $atf },
+                { type: "firmware", name: "optee_os", version: $optee },
+                { type: "firmware", name: "rkbin", version: $rkbin_ref, purl: ("pkg:github/rockchip-linux/rkbin@" + $rkbin_ref), description: ("prebuilt BL31 " + $rkbin_bl31 + " and DDR blobs") },
+                { type: "operating-system", name: "ubuntu", version: $ubuntu }
+              ]
+            }' > artifacts/sbom.cdx.json
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      # Sign the checksum manifest once (not every binary): one keyless signature
+      # covers all artifacts, and SLSA provenance already attests each binary.
+      - name: Sign checksums (cosign keyless)
+        run: cosign sign-blob --yes --bundle artifacts/SHA256SUMS.cosign.bundle artifacts/SHA256SUMS
+
+      - name: Create / update release
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
+        with:
+          tag_name: ${{ steps.meta.outputs.uboot }}
+          name: U-Boot ${{ steps.meta.outputs.uboot }} — Rockchip
+          make_latest: true
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          body: |
+            Pre-built, signed U-Boot for mainline-supported Rockchip ARM64 boards
+            (${{ steps.meta.outputs.bins }} binaries across all SoC groups).
+
+            `SHA256SUMS` (cosign-signed) and `sbom.cdx.json` (CycloneDX) are
+            attached; every binary also carries a SLSA provenance attestation.
+
+            | Component | Version |
+            | --------- | ------- |
+            | U-Boot | ${{ steps.meta.outputs.uboot }} |
+            | Arm Trusted Firmware (BL31) | ${{ steps.meta.outputs.atf }} |
+            | rkbin (prebuilt BL31 for rk3308/rk3528 + DDR blobs) | `${{ steps.meta.outputs.rkbin_ref }}` |
+            | OP-TEE (BL32, `-optee` variants) | ${{ steps.meta.outputs.optee }} |
+
+            Each binary ships a `*.manifest.json` recording the exact versions that
+            went into it. See the [supported boards table](https://github.com/${{ github.repository }}/blob/main/docs/boards.md)
+            to find your board's file.
+
+            ## Which file do I need?
+
+            - `u-boot-<defconfig>.bin` — write to SD card or eMMC (`dd … seek=64`). Works on every board.
+            - `u-boot-<defconfig>-spi.bin` — for booting from SPI flash (only some boards).
+            - `u-boot-<defconfig>-optee.bin` — same as above but bundles the OP-TEE secure world (rk3588 / rk3399 / px30 / rk3326). Experimental.
+
+            `<defconfig>` is your board's U-Boot defconfig, e.g. `orangepi-5-rk3588s`.
+
+            ## Verify a binary
+
+            SLSA build provenance:
+            ```bash
+            gh attestation verify <file>.bin --repo ${{ github.repository }} \
+              --signer-workflow ${{ github.repository }}/.github/workflows/build.yaml
+            ```
+
+            Checksums — download `SHA256SUMS` and `SHA256SUMS.cosign.bundle`:
+            ```bash
+            cosign verify-blob \
+              --bundle SHA256SUMS.cosign.bundle \
+              --certificate-identity 'https://github.com/${{ github.repository }}/.github/workflows/build.yaml@refs/heads/main' \
+              --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+              SHA256SUMS
+            sha256sum --ignore-missing -c SHA256SUMS   # then check your downloaded file(s)
+            ```
+
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.meta.outputs.uboot }}
+          REPO: ${{ github.repository }}
+        # A few bounded queues with retry: fast, but never the unbounded burst that
+        # trips GitHub's secondary rate limit.
+        run: |
+          set -u
+          fails="$(mktemp)"
+          upload_one() {
+            f=$1
+            for a in 1 2 3 4 5; do
+              gh release upload "$TAG" "$f" --clobber --repo "$REPO" && return 0
+              echo "retry $a: $(basename "$f")" >&2
+              sleep $((a * 10))
+            done
+            echo "::error::upload failed after retries: $f"
+            echo x >> "$fails"
+          }
+          for f in artifacts/*.bin artifacts/*.manifest.json \
+                   artifacts/SHA256SUMS artifacts/SHA256SUMS.cosign.bundle artifacts/sbom.cdx.json; do
+            upload_one "$f" &
+            while [ "$(jobs -r | wc -l)" -ge 4 ]; do wait -n || true; done
+          done
+          wait
+          [ ! -s "$fails" ] || { echo "::error::one or more release assets failed to upload"; exit 1; }

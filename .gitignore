@@ -1,0 +1,4 @@
+/out/
+*.bin
+*.manifest.json
+*.cosign.bundle

@@ -1,0 +1,869 @@
+{
+  "$comment": "Single source of truth for the board matrix. Each SoC group builds its shared blobs (TF-A or rkbin BL31, rkbin DDR, optional OP-TEE) once, then every listed defconfig. Validated by scripts/check-boards.sh against the U-Boot version pinned in the Dockerfile.",
+  "socs": [
+    {
+      "soc": "rk3588",
+      "bl31": {
+        "kind": "tfa",
+        "plat": "rk3588"
+      },
+      "ddr": {
+        "kind": "rkbin",
+        "subdir": "rk35",
+        "glob": "rk3588_ddr_lp4_2112MHz_lp5_2400MHz_v[0-9.]*.bin"
+      },
+      "boards": [
+        {
+          "defconfig": "cm3588-nas-rk3588",
+          "name": "FriendlyElec CM3588 NAS",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "coolpi-4b-rk3588s",
+          "name": "Yanyi Tech CoolPi 4 Model B",
+          "spi": true,
+          "foss": false
+        },
+        {
+          "defconfig": "coolpi-cm5-evb-rk3588",
+          "name": "Yanyi Tech CoolPi CM5 EVB",
+          "spi": true,
+          "foss": false
+        },
+        {
+          "defconfig": "coolpi-cm5-genbook-rk3588",
+          "name": "Yanyi Tech CoolPi CM5 GenBook",
+          "spi": true,
+          "foss": false
+        },
+        {
+          "defconfig": "evb-rk3588",
+          "name": "Rockchip EVB",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "gameforce-ace-rk3588s",
+          "name": "GameForce Ace",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "generic-rk3588",
+          "name": "Generic RK3582/RK3588S/RK3588",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "jaguar-rk3588",
+          "name": "Theobroma Systems RK3588-SBC Jaguar",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "khadas-edge2-rk3588s",
+          "name": "Khadas Edge2",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "mnt-reform2-rk3588",
+          "name": "MNT Reform2",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "nanopc-t6-rk3588",
+          "name": "FriendlyElec NanoPC-T6",
+          "spi": true,
+          "foss": false
+        },
+        {
+          "defconfig": "nanopi-r6c-rk3588s",
+          "name": "FriendlyElec NanoPi R6C",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "nanopi-r6s-rk3588s",
+          "name": "FriendlyElec NanoPi R6S",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "neu6a-io-rk3588",
+          "name": "Edgeble Neural Compute Module 6A SoM - Neu6a",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "neu6b-io-rk3588",
+          "name": "Edgeble Neural Compute Module 6B SoM - Neu6b",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "nova-rk3588s",
+          "name": "Indiedroid Nova",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "odroid-m2-rk3588s",
+          "name": "Hardkernel ODROID-M2",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "orangepi-5-max-rk3588",
+          "name": "Xunlong Orange Pi 5 Max",
+          "spi": true,
+          "foss": false
+        },
+        {
+          "defconfig": "orangepi-5-plus-rk3588",
+          "name": "Xunlong Orange Pi 5 Plus",
+          "spi": true,
+          "foss": false
+        },
+        {
+          "defconfig": "orangepi-5-rk3588s",
+          "name": "Xunlong Orange Pi 5",
+          "spi": true,
+          "foss": false
+        },
+        {
+          "defconfig": "orangepi-5-ultra-rk3588",
+          "name": "Xunlong Orange Pi 5 Ultra",
+          "spi": true,
+          "foss": false
+        },
+        {
+          "defconfig": "quartzpro64-rk3588",
+          "name": "Pine64 QuartzPro64",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "rock-5-itx-rk3588",
+          "name": "Radxa ROCK 5 ITX",
+          "spi": true,
+          "foss": false
+        },
+        {
+          "defconfig": "rock-5c-rk3588s",
+          "name": "Radxa ROCK 5C/5C Lite",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "rock5a-rk3588s",
+          "name": "Radxa ROCK 5A",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "rock5b-rk3588",
+          "name": "Radxa ROCK 5B/5B+/5T",
+          "spi": true,
+          "foss": false
+        },
+        {
+          "defconfig": "sige7-rk3588",
+          "name": "ArmSoM Sige7",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "tiger-rk3588",
+          "name": "Theobroma Systems SOM-RK3588-Q7 - Tiger",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "toybrick-rk3588",
+          "name": "Rockchip Toybrick TB-RK3588X",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "turing-rk1-rk3588",
+          "name": "Turing Machines RK1",
+          "spi": false,
+          "foss": false
+        }
+      ],
+      "optee_platform": "rk3588"
+    },
+    {
+      "soc": "rk3576",
+      "bl31": {
+        "kind": "tfa",
+        "plat": "rk3576"
+      },
+      "ddr": {
+        "kind": "rkbin",
+        "subdir": "rk35",
+        "glob": "rk3576_ddr_lp4_2112MHz_lp5_2736MHz_v[0-9.]*.bin"
+      },
+      "boards": [
+        {
+          "defconfig": "generic-rk3576",
+          "name": "Generic RK3576",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "nanopi-m5-rk3576",
+          "name": "FriendlyElec NanoPi M5",
+          "spi": true,
+          "foss": false
+        },
+        {
+          "defconfig": "omni3576-rk3576",
+          "name": "Luckfox Omni3576",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "roc-pc-rk3576",
+          "name": "Firefly ROC-RK3576-PC",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "rock-4d-rk3576",
+          "name": "Radxa ROCK 4D",
+          "spi": true,
+          "foss": false
+        },
+        {
+          "defconfig": "sige5-rk3576",
+          "name": "ArmSoM Sige5",
+          "spi": false,
+          "foss": false
+        }
+      ]
+    },
+    {
+      "soc": "rk3568",
+      "bl31": {
+        "kind": "tfa",
+        "plat": "rk3568"
+      },
+      "ddr": {
+        "kind": "rkbin",
+        "subdir": "rk35",
+        "glob": "rk3568_ddr_1560MHz_v[0-9.]*.bin"
+      },
+      "boards": [
+        {
+          "defconfig": "bpi-r2-pro-rk3568",
+          "name": "Banana Pi BPI-R2 Pro",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "evb-rk3568",
+          "name": "Rockchip Evb-RK3568",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "fastrhino-r66s-rk3568",
+          "name": "Lunzn FastRhino R66S",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "generic-rk3568",
+          "name": "Generic RK3566/RK3568",
+          "spi": true,
+          "foss": false
+        },
+        {
+          "defconfig": "lubancat-2-rk3568",
+          "name": "EmbedFire LubanCat 2",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "nanopi-r5c-rk3568",
+          "name": "FriendlyElec NanoPi R5C",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "nanopi-r5s-rk3568",
+          "name": "FriendlyElec NanoPi R5S",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "odroid-m1-rk3568",
+          "name": "Hardkernel ODROID-M1",
+          "spi": true,
+          "foss": false
+        },
+        {
+          "defconfig": "qnap-ts433-rk3568",
+          "name": "QNAP TS-433",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "radxa-e25-rk3568",
+          "name": "Radxa E25 Carrier Board",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "rock-3a-rk3568",
+          "name": "Radxa ROCK 3A",
+          "spi": true,
+          "foss": false
+        },
+        {
+          "defconfig": "rock-3b-rk3568",
+          "name": "Radxa ROCK 3B",
+          "spi": true,
+          "foss": false
+        }
+      ]
+    },
+    {
+      "soc": "rk3566",
+      "bl31": {
+        "kind": "tfa",
+        "plat": "rk3568"
+      },
+      "ddr": {
+        "kind": "rkbin",
+        "subdir": "rk35",
+        "glob": "rk3566_ddr_1056MHz_v[0-9.]*.bin"
+      },
+      "boards": [
+        {
+          "defconfig": "anbernic-rgxx3-rk3566",
+          "name": "Anbernic RGxx3",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "lckfb-tspi-rk3566",
+          "name": "LCKFB TaishanPi",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "nanopi-r3s-rk3566",
+          "name": "FriendlyElec NanoPi R3S",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "odroid-m1s-rk3566",
+          "name": "Hardkernel ODROID-M1S",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "orangepi-3b-rk3566",
+          "name": "Xunlong Orange Pi 3B",
+          "spi": true,
+          "foss": false
+        },
+        {
+          "defconfig": "pinetab2-rk3566",
+          "name": "Pine64 PineTab2",
+          "spi": true,
+          "foss": false
+        },
+        {
+          "defconfig": "powkiddy-x55-rk3566",
+          "name": "Powkiddy X55",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "quartz64-a-rk3566",
+          "name": "Pine64 Quartz64-A Board",
+          "spi": true,
+          "foss": false
+        },
+        {
+          "defconfig": "quartz64-b-rk3566",
+          "name": "Pine64 Quartz64-B Board",
+          "spi": true,
+          "foss": false
+        },
+        {
+          "defconfig": "radxa-cm3-io-rk3566",
+          "name": "Radxa CM3 IO Board",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "radxa-zero-3-rk3566",
+          "name": "Radxa ZERO 3W/3E",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "rock-3c-rk3566",
+          "name": "Radxa ROCK 3C",
+          "spi": true,
+          "foss": false
+        },
+        {
+          "defconfig": "soquartz-blade-rk3566",
+          "name": "Pine64 SOQuartz on Blade",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "soquartz-cm4-rk3566",
+          "name": "Pine64 SOQuartz on CM4-IO",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "soquartz-model-a-rk3566",
+          "name": "Pine64 SOQuartz on Model A",
+          "spi": false,
+          "foss": false
+        }
+      ]
+    },
+    {
+      "soc": "rk3528",
+      "bl31": {
+        "kind": "rkbin",
+        "subdir": "rk35",
+        "glob": "rk3528_bl31_v[0-9.]*.elf"
+      },
+      "ddr": {
+        "kind": "rkbin",
+        "subdir": "rk35",
+        "glob": "rk3528_ddr_1056MHz_v[0-9.]*.bin"
+      },
+      "boards": [
+        {
+          "defconfig": "generic-rk3528",
+          "name": "Generic RK3528",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "radxa-e20c-rk3528",
+          "name": "Radxa E20C",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "rock-2-rk3528",
+          "name": "Radxa ROCK 2A/2F",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "sige1-rk3528",
+          "name": "ArmSoM Sige1",
+          "spi": false,
+          "foss": false
+        }
+      ]
+    },
+    {
+      "soc": "rk3399",
+      "bl31": {
+        "kind": "tfa",
+        "plat": "rk3399",
+        "version": "legacy"
+      },
+      "ddr": {
+        "kind": "rkbin",
+        "subdir": "rk33",
+        "glob": "rk3399_ddr_933MHz_v[0-9.]*.bin"
+      },
+      "boards": [
+        {
+          "defconfig": "chromebook_bob",
+          "name": "Google Bob",
+          "spi": false,
+          "foss": true
+        },
+        {
+          "defconfig": "chromebook_kevin",
+          "name": "Google Kevin",
+          "spi": false,
+          "foss": true
+        },
+        {
+          "defconfig": "eaidk-610-rk3399",
+          "name": "eaidk 610",
+          "spi": false,
+          "foss": true
+        },
+        {
+          "defconfig": "evb-rk3399",
+          "name": "evb",
+          "spi": false,
+          "foss": true
+        },
+        {
+          "defconfig": "ficus-rk3399",
+          "name": "96boards RK3399 Ficus",
+          "spi": false,
+          "foss": true
+        },
+        {
+          "defconfig": "firefly-rk3399",
+          "name": "firefly",
+          "spi": false,
+          "foss": true
+        },
+        {
+          "defconfig": "generic-rk3399",
+          "name": "Generic RK3399",
+          "spi": true,
+          "foss": false
+        },
+        {
+          "defconfig": "khadas-edge-captain-rk3399",
+          "name": "Khadas Edge-Captain",
+          "spi": true,
+          "foss": true
+        },
+        {
+          "defconfig": "khadas-edge-rk3399",
+          "name": "Khadas Edge",
+          "spi": true,
+          "foss": true
+        },
+        {
+          "defconfig": "khadas-edge-v-rk3399",
+          "name": "khadas edge v",
+          "spi": true,
+          "foss": true
+        },
+        {
+          "defconfig": "leez-rk3399",
+          "name": "leez",
+          "spi": false,
+          "foss": true
+        },
+        {
+          "defconfig": "nanopc-t4-rk3399",
+          "name": "FriendlyElec NanoPC-T4",
+          "spi": false,
+          "foss": true
+        },
+        {
+          "defconfig": "nanopi-m4-2gb-rk3399",
+          "name": "nanopi m4 2gb",
+          "spi": false,
+          "foss": true
+        },
+        {
+          "defconfig": "nanopi-m4-rk3399",
+          "name": "FriendlyElec NanoPi M4",
+          "spi": false,
+          "foss": true
+        },
+        {
+          "defconfig": "nanopi-m4b-rk3399",
+          "name": "FriendlyElec NanoPi M4B",
+          "spi": false,
+          "foss": true
+        },
+        {
+          "defconfig": "nanopi-neo4-rk3399",
+          "name": "FriendlyARM NanoPi NEO4",
+          "spi": false,
+          "foss": true
+        },
+        {
+          "defconfig": "nanopi-r4s-rk3399",
+          "name": "nanopi r4s",
+          "spi": false,
+          "foss": true
+        },
+        {
+          "defconfig": "orangepi-rk3399",
+          "name": "Orange Pi RK3399",
+          "spi": false,
+          "foss": true
+        },
+        {
+          "defconfig": "pinebook-pro-rk3399",
+          "name": "pinebook pro",
+          "spi": true,
+          "foss": true
+        },
+        {
+          "defconfig": "pinephone-pro-rk3399",
+          "name": "pinephone pro",
+          "spi": true,
+          "foss": true
+        },
+        {
+          "defconfig": "puma-rk3399",
+          "name": "puma",
+          "spi": true,
+          "foss": true
+        },
+        {
+          "defconfig": "roc-pc-mezzanine-rk3399",
+          "name": "roc pc mezzanine",
+          "spi": true,
+          "foss": true
+        },
+        {
+          "defconfig": "roc-pc-rk3399",
+          "name": "roc pc",
+          "spi": true,
+          "foss": true
+        },
+        {
+          "defconfig": "rock-4c-plus-rk3399",
+          "name": "Radxa ROCK 4C+",
+          "spi": true,
+          "foss": true
+        },
+        {
+          "defconfig": "rock-4se-rk3399",
+          "name": "Radxa ROCK 4SE",
+          "spi": true,
+          "foss": true
+        },
+        {
+          "defconfig": "rock-pi-4-rk3399",
+          "name": "Radxa ROCK Pi 4A/B/A+/B+",
+          "spi": true,
+          "foss": true
+        },
+        {
+          "defconfig": "rock-pi-4c-rk3399",
+          "name": "Radxa ROCK Pi 4C",
+          "spi": true,
+          "foss": true
+        },
+        {
+          "defconfig": "rock-pi-n10-rk3399pro",
+          "name": "rock pi n10",
+          "spi": false,
+          "foss": true
+        },
+        {
+          "defconfig": "rock960-rk3399",
+          "name": "96boards Rock960",
+          "spi": false,
+          "foss": true
+        },
+        {
+          "defconfig": "rockpro64-rk3399",
+          "name": "Pine64 RockPro64",
+          "spi": true,
+          "foss": true
+        }
+      ],
+      "optee_platform": "rk3399"
+    },
+    {
+      "soc": "rk3328",
+      "bl31": {
+        "kind": "tfa",
+        "plat": "rk3328",
+        "version": "legacy"
+      },
+      "ddr": {
+        "kind": "rkbin",
+        "subdir": "rk33",
+        "glob": "rk3328_ddr_400MHz_v[0-9.]*.bin"
+      },
+      "boards": [
+        {
+          "defconfig": "evb-rk3328",
+          "name": "Rockchip Evb-RK3328",
+          "spi": false,
+          "foss": true
+        },
+        {
+          "defconfig": "generic-rk3328",
+          "name": "Generic RK3328",
+          "spi": true,
+          "foss": false
+        },
+        {
+          "defconfig": "nanopi-r2c-plus-rk3328",
+          "name": "FriendlyElec NanoPi R2C Plus",
+          "spi": false,
+          "foss": true
+        },
+        {
+          "defconfig": "nanopi-r2c-rk3328",
+          "name": "FriendlyElec NanoPi R2C",
+          "spi": false,
+          "foss": true
+        },
+        {
+          "defconfig": "nanopi-r2s-plus-rk3328",
+          "name": "FriendlyElec NanoPi R2S Plus",
+          "spi": false,
+          "foss": true
+        },
+        {
+          "defconfig": "nanopi-r2s-rk3328",
+          "name": "FriendlyElec NanoPi R2S",
+          "spi": false,
+          "foss": true
+        },
+        {
+          "defconfig": "orangepi-r1-plus-lts-rk3328",
+          "name": "Xunlong Orange Pi R1 Plus LTS",
+          "spi": true,
+          "foss": true
+        },
+        {
+          "defconfig": "orangepi-r1-plus-rk3328",
+          "name": "Xunlong Orange Pi R1 Plus",
+          "spi": true,
+          "foss": true
+        },
+        {
+          "defconfig": "roc-cc-rk3328",
+          "name": "Firefly ROC-RK3328-CC",
+          "spi": false,
+          "foss": true
+        },
+        {
+          "defconfig": "rock-pi-e-rk3328",
+          "name": "Radxa ROCK Pi E",
+          "spi": false,
+          "foss": true
+        },
+        {
+          "defconfig": "rock-pi-e-v3-rk3328",
+          "name": "rock pi e v3",
+          "spi": false,
+          "foss": true
+        },
+        {
+          "defconfig": "rock64-rk3328",
+          "name": "Pine64 Rock64",
+          "spi": true,
+          "foss": true
+        }
+      ]
+    },
+    {
+      "soc": "rk3308",
+      "bl31": {
+        "kind": "rkbin",
+        "subdir": "rk33",
+        "glob": "rk3308_bl31_v[0-9.]*.elf"
+      },
+      "ddr": {
+        "kind": "rkbin",
+        "subdir": "rk33",
+        "glob": "rk3308_ddr_589MHz_uart2_m1_v[0-9.]*.bin"
+      },
+      "boards": [
+        {
+          "defconfig": "evb-rk3308",
+          "name": "Rockchip Evb-RK3308",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "roc-cc-rk3308",
+          "name": "Roc-cc-RK3308",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "rock-pi-s-rk3308",
+          "name": "Radxa ROCK Pi S",
+          "spi": false,
+          "foss": false
+        },
+        {
+          "defconfig": "rock-s0-rk3308",
+          "name": "Radxa ROCK S0",
+          "spi": false,
+          "foss": false
+        }
+      ]
+    },
+    {
+      "soc": "rk3326",
+      "bl31": {
+        "kind": "tfa",
+        "plat": "px30"
+      },
+      "ddr": {
+        "kind": "uboot"
+      },
+      "boards": [
+        {
+          "defconfig": "odroid-go2",
+          "name": "ODROID-GO Advance",
+          "spi": true,
+          "foss": true
+        }
+      ],
+      "optee_platform": "px30"
+    },
+    {
+      "soc": "px30",
+      "bl31": {
+        "kind": "tfa",
+        "plat": "px30"
+      },
+      "ddr": {
+        "kind": "uboot"
+      },
+      "boards": [
+        {
+          "defconfig": "evb-px30",
+          "name": "Rockchip Evb-PX30",
+          "spi": false,
+          "foss": true
+        },
+        {
+          "defconfig": "firefly-px30",
+          "name": "Firefly Core-PX30-JD4",
+          "spi": false,
+          "foss": true
+        },
+        {
+          "defconfig": "px30-core-ctouch2-of10-px30",
+          "name": "Engicam PX30.Core C.TOUCH 2.0 10.1",
+          "spi": false,
+          "foss": true
+        },
+        {
+          "defconfig": "px30-core-ctouch2-px30",
+          "name": "Engicam PX30.Core C.TOUCH 2.0",
+          "spi": false,
+          "foss": true
+        },
+        {
+          "defconfig": "px30-core-edimm2.2-px30",
+          "name": "Engicam PX30.Core EDIMM2.2 Starter Kit",
+          "spi": false,
+          "foss": true
+        },
+        {
+          "defconfig": "ringneck-px30",
+          "name": "Theobroma Systems PX30-\u00b5Q7 SoM - Ringneck",
+          "spi": false,
+          "foss": true
+        }
+      ],
+      "optee_platform": "px30"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+self-hosted-runner:
+  # Ubicloud-hosted arm64 runners used by the build pipeline.
+  labels:
+    - ubicloud-standard-2-arm
+    - ubicloud-standard-4-arm
+    - ubicloud-standard-8-arm
+    - ubicloud-standard-16-arm

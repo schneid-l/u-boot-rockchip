@@ -1,0 +1,64 @@
+name: Lint
+
+on:
+  pull_request:
+    paths:
+      - Dockerfile
+      - .hadolint.yaml
+      - boards.json
+      - scripts/**
+      - .github/**
+  push:
+    branches: [main]
+    paths:
+      - Dockerfile
+      - .hadolint.yaml
+      - boards.json
+      - scripts/**
+      - .github/**
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: actionlint • hadolint • shellcheck • renovate-config
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+
+      - name: actionlint
+        # installer pinned by commit SHA (tag v1.7.12) so the tag cannot be moved
+        run: |
+          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/914e7df21a07ef503a81201c76d2b11c789d3fca/scripts/download-actionlint.bash) 1.7.12
+          ./actionlint -color
+
+      - name: hadolint
+        if: ${{ !cancelled() }}
+        uses: hadolint/hadolint-action@2332a7b74a6de0dda2e2221d575162eba76ba5e5 # v3.3.0
+        with:
+          dockerfile: Dockerfile
+          config: .hadolint.yaml
+          failure-threshold: error
+
+      - name: shellcheck
+        if: ${{ !cancelled() }}
+        run: shellcheck scripts/*.sh
+
+      - name: Validate boards.json
+        if: ${{ !cancelled() }}
+        run: jq -e 'has("socs") and (.socs | length > 0)' boards.json > /dev/null
+
+      - name: Validate Renovate config
+        if: ${{ !cancelled() }}
+        uses: suzuki-shunsuke/github-action-renovate-config-validator@ee9f69e1f683ed0d08225086482b34fc9abe9300 # v2.1.0
+        with:
+          config_file_path: .github/renovate.json5
+          strict: "true"
