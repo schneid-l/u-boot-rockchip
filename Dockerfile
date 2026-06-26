@@ -132,6 +132,7 @@ ARG ATF_VERSION
 ARG ATF_LEGACY_VERSION
 ARG ATF_TRACK
 ARG ATF_PLAT
+ARG SOURCE_DATE_EPOCH
 # arm-none-eabi builds the rk3399 PMU Cortex-M0 firmware; unused by other PLATs.
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
@@ -143,7 +144,12 @@ RUN ver="$([ "${ATF_TRACK}" = legacy ] && echo "${ATF_LEGACY_VERSION}" || echo "
     curl -fsSL "https://github.com/ARM-software/arm-trusted-firmware/archive/refs/tags/${ver}.tar.gz" \
       | tar -xz -C /atf/src --strip-components=1
 WORKDIR /atf/src
-RUN CFLAGS=--param=min-pagesize=0 make -j"$(nproc)" DEBUG=0 PLAT="${ATF_PLAT}" bl31 && \
+# TF-A defaults BUILD_MESSAGE_TIMESTAMP to __TIME__/__DATE__ (the wall-clock
+# build time) and injects it raw into a C string, which breaks reproducibility.
+# Pin it to a SOURCE_DATE_EPOCH-derived value, quoted so it stays a string literal.
+RUN ts="$([ -n "${SOURCE_DATE_EPOCH}" ] && date -u -d "@${SOURCE_DATE_EPOCH}" '+%H:%M:%S, %b %d %Y' || echo 'reproducible build')" && \
+    CFLAGS=--param=min-pagesize=0 make -j"$(nproc)" DEBUG=0 PLAT="${ATF_PLAT}" \
+      BUILD_MESSAGE_TIMESTAMP="\"${ts}\"" bl31 && \
     cp "build/${ATF_PLAT}/release/bl31/bl31.elf" /bl31/bl31.elf
 
 # ...or a prebuilt BL31 .elf from rkbin for SoCs without mainline TF-A support.
