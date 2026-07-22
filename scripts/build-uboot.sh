@@ -6,6 +6,11 @@ set -eu
 
 : "${DEFCONFIGS:?}" "${SOC:?}" "${U_BOOT_VERSION:?}" "${RKBIN_REF:?}"
 OPTEE="${OPTEE:-off}"
+# Optional Kconfig fragments (filenames under /fragments) merged into every
+# defconfig, and the suffix that keeps the resulting binaries distinguishable
+# from a stock build. Both empty for the standard builds.
+CONFIG_FRAGMENTS="${CONFIG_FRAGMENTS:-}"
+VARIANT_SUFFIX="${VARIANT_SUFFIX:-}"
 
 export CCACHE_DIR=/root/.cache/ccache
 export PATH="/usr/lib/ccache:${PATH}"
@@ -24,11 +29,45 @@ mkdir -p "${out}"
 jobs="$(nproc)"
 binaries=""
 
+# Resolve the requested fragments up front, so a typo fails the build before
+# anything is compiled rather than after the first board.
+fragment_paths=""
+for frag in ${CONFIG_FRAGMENTS}; do
+  path="/fragments/${frag}"
+  [ -f "${path}" ] || { echo "ERROR: no such Kconfig fragment: ${frag}" >&2; exit 1; }
+  fragment_paths="${fragment_paths} ${path}"
+done
+
+# Kconfig silently drops an assignment whose dependencies are unmet, which
+# would produce a binary that builds and boots but is missing exactly the
+# feature the fragment asked for. Assert every explicit line survived.
+verify_fragments() {
+  conf="$1"
+  rc=0
+  for f in ${fragment_paths}; do
+    # Every assignment the fragment makes, minus every line the resolved
+    # .config contains, is what Kconfig threw away.
+    missing="$(grep -E '^(CONFIG_[A-Z0-9_]+=|# CONFIG_[A-Z0-9_]+ is not set$)' "${f}" \
+               | grep -Fxv -f "${conf}" || true)"
+    [ -n "${missing}" ] || continue
+    echo "ERROR: ${f}: dropped by olddefconfig (unmet dependency?):" >&2
+    echo "${missing}" | sed 's/^/  /' >&2
+    rc=1
+  done
+  return "${rc}"
+}
+
 for dc in ${DEFCONFIGS}; do
   echo "==> building ${dc}${variant}"
   rm -rf "${build}"
   mkdir -p "${build}"
   make O="${build}" -j"${jobs}" "${dc}_defconfig" >/dev/null
+  if [ -n "${fragment_paths}" ]; then
+    # shellcheck disable=SC2086 # fragment_paths is a deliberate word list
+    ./scripts/kconfig/merge_config.sh -m -O "${build}" "${build}/.config" ${fragment_paths}
+    make O="${build}" -j"${jobs}" olddefconfig >/dev/null
+    verify_fragments "${build}/.config"
+  fi
   make O="${build}" -j"${jobs}" HOSTLDLIBS_mkimage="-lssl -lcrypto"
 
   found=0
@@ -37,7 +76,7 @@ for dc in ${DEFCONFIGS}; do
     medium="$(basename "${f}")"
     medium="${medium#u-boot-rockchip}"   # "" (SD/eMMC) or "-spi"
     medium="${medium%.bin}"
-    name="u-boot-${dc}${variant}${medium}.bin"
+    name="u-boot-${dc}${variant}${VARIANT_SUFFIX}${medium}.bin"
     cp "${f}" "${out}/${name}"
     binaries="${binaries} ${name}"
     found=1
@@ -55,10 +94,23 @@ json_array() {
   printf ']'
 }
 
+# Fragments are recorded by content hash: the filename alone says nothing about
+# what was actually merged into the binaries.
+fragments_json() {
+  printf '['
+  sep=''
+  for f in ${fragment_paths}; do
+    printf '%s{"name": "%s", "sha256": "%s"}' \
+      "${sep}" "$(basename "${f}")" "$(sha256sum "${f}" | cut -d' ' -f1)"
+    sep=', '
+  done
+  printf ']'
+}
+
 # shellcheck disable=SC1091 # /etc/os-release is a runtime file, not in the repo
 ubuntu_version="$(. /etc/os-release && echo "${VERSION_ID}")"
 
-cat > "${out}/u-boot-${SOC}${variant}.manifest.json" <<EOF
+cat > "${out}/u-boot-${SOC}${variant}${VARIANT_SUFFIX}.manifest.json" <<EOF
 {
   "soc": "${SOC}",
   "variant": "$([ "${OPTEE}" = "on" ] && echo optee || echo standard)",
@@ -71,6 +123,8 @@ cat > "${out}/u-boot-${SOC}${variant}.manifest.json" <<EOF
   "optee_version": "$(cat /optee/optee.version)",
   "ubuntu_version": "${ubuntu_version}",
   "source_date_epoch": "${SOURCE_DATE_EPOCH:-}",
+  "variant_suffix": "${VARIANT_SUFFIX}",
+  "config_fragments": $(fragments_json),
   "binaries": $(json_array "${binaries}")
 }
 EOF
