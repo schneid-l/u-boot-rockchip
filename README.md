@@ -100,6 +100,36 @@ reusing the shared blobs. Build args:
 | `ATF_PLAT` / `ATF_TRACK` | TF-A `PLAT`; `modern` (v2.15.0) or `legacy` (v2.12.0). |
 | `BL31_GLOB` | rkbin BL31 `.elf` glob (`BL31_KIND=rkbin`). |
 | `OPTEE` / `OPTEE_PLATFORM` | `on` to bundle OP-TEE for `rockchip-<platform>`. |
+| `CONFIG_FRAGMENTS` | Space-separated Kconfig fragments to merge (see below). |
+| `VARIANT_SUFFIX` | Suffix for the output filenames, e.g. `-httpboot`. |
+
+### Custom Kconfig fragments
+
+The published binaries are stock upstream defconfigs. To build a board with
+extra config — netboot, a different console, a custom `bootcmd` — put the
+settings in a `.config` fragment and pass its directory as the `fragments`
+build context:
+
+```bash
+docker build --target export --output type=local,dest=./out \
+  --build-context fragments=./my-fragments \
+  --build-arg CONFIG_FRAGMENTS="http-boot.config" \
+  --build-arg VARIANT_SUFFIX="-httpboot" \
+  --build-arg SOC=rk3588 \
+  --build-arg DEFCONFIGS="orangepi-5-rk3588s" \
+  --build-arg DDR_SUBDIR=rk35 \
+  --build-arg DDR_GLOB="rk3588_ddr_lp4_2112MHz_lp5_2400MHz_v[0-9.]*.bin" \
+  --build-arg ATF_PLAT=rk3588 \
+  .
+```
+
+Fragments are merged with U-Boot's own `merge_config.sh` after `make
+<board>_defconfig`, then reconciled with `olddefconfig`. Every symbol a
+fragment sets must survive that reconciliation or the build fails: Kconfig
+drops assignments with unmet dependencies silently, which would otherwise
+yield firmware missing exactly the feature you asked for. `VARIANT_SUFFIX`
+keeps the output filenames distinct from stock, and the manifest records each
+fragment's name and SHA-256.
 
 ## Supported boards
 

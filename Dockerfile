@@ -48,6 +48,13 @@ ARG BL31_GLOB=""
 # OP-TEE secure world (BL32): "off" (default) or "on" for the -optee variant.
 ARG OPTEE=off
 ARG OPTEE_PLATFORM=rk3588
+# Kconfig fragments merged into every defconfig of the group — space-separated
+# filenames resolved inside the `fragments` build context (see below). Empty
+# for the published builds, which are stock upstream defconfigs.
+ARG CONFIG_FRAGMENTS=""
+# Suffix for the output filenames, so a customised build can never be mistaken
+# for a stock one (e.g. "-httpboot" → u-boot-orangepi-5-rk3588s-httpboot.bin).
+ARG VARIANT_SUFFIX=""
 
 # ---------------------------------------------------------------------------
 # Base build environment. The base image is pinned by digest and kept current
@@ -189,6 +196,20 @@ RUN make -j"$(nproc)" PLATFORM="rockchip-${OPTEE_PLATFORM}" CFG_ARM64_core=y CFG
 FROM tee-${OPTEE} AS tee
 
 # ---------------------------------------------------------------------------
+# Kconfig fragments. Empty by default, so the published builds are stock
+# upstream defconfigs. Downstream users override this stage with a named build
+# context to merge extra config into every board of the group:
+#
+#   docker build --build-context fragments=./my-fragments \
+#     --build-arg CONFIG_FRAGMENTS="http-boot.config" \
+#     --build-arg VARIANT_SUFFIX="-httpboot" ...
+#
+# Every symbol a fragment sets is asserted to survive `olddefconfig`, so an
+# unmet dependency fails the build instead of silently dropping the feature.
+# ---------------------------------------------------------------------------
+FROM scratch AS fragments
+
+# ---------------------------------------------------------------------------
 # U-Boot source (depends only on U_BOOT_VERSION, so it is shared across every
 # board of a SoC group).
 # ---------------------------------------------------------------------------
@@ -208,11 +229,14 @@ ARG SOURCE_DATE_EPOCH
 ARG SOC
 ARG DEFCONFIGS
 ARG OPTEE
+ARG CONFIG_FRAGMENTS
+ARG VARIANT_SUFFIX
 
 COPY --from=u-boot-source /u-boot/src /u-boot/src
 COPY --from=ddr /ddr /ddr
 COPY --from=bl31 /bl31 /bl31
 COPY --from=tee /optee /optee
+COPY --from=fragments / /fragments
 COPY scripts/build-uboot.sh /usr/local/bin/build-uboot.sh
 
 ENV BL31=/bl31/bl31.elf
@@ -223,6 +247,7 @@ WORKDIR /u-boot/src
 RUN --mount=type=cache,target=/root/.cache/ccache \
     SOC="${SOC}" DEFCONFIGS="${DEFCONFIGS}" OPTEE="${OPTEE}" \
     U_BOOT_VERSION="${U_BOOT_VERSION}" RKBIN_REF="${RKBIN_REF}" \
+    CONFIG_FRAGMENTS="${CONFIG_FRAGMENTS}" VARIANT_SUFFIX="${VARIANT_SUFFIX}" \
     build-uboot.sh
 
 # ---------------------------------------------------------------------------
