@@ -38,7 +38,10 @@ jobs:
         # installer pinned by commit SHA (tag v1.7.12) so the tag cannot be moved
         run: |
           bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/914e7df21a07ef503a81201c76d2b11c789d3fca/scripts/download-actionlint.bash) 1.7.12
-          ./actionlint -color
+          # actionlint 1.7.12 (2026-03-30) predates the `queue` concurrency key
+          # (GA 2026-05-07) and rejects it as an unknown key. Drop this -ignore
+          # once actionlint knows the key.
+          ./actionlint -color -ignore 'unexpected key "queue" for "concurrency" section'
 
       - name: hadolint
         if: ${{ !cancelled() }}

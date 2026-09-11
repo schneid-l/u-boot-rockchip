@@ -12,10 +12,13 @@ env:
 
 permissions: {}
 
-# Serialize runs on main so releases queue instead of cancelling each other;
-# still cancel superseded PR builds.
+# On PRs, supersede the run a new push replaced. On main, give every push its
+# own group: a concurrency group holds only ONE pending run, so the previous
+# pending run was cancelled whenever the next push arrived — which silently
+# dropped that commit's build *and* its release. Releases are serialized on the
+# `release` job instead, where FIFO queueing actually applies.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.ref == 'refs/heads/main' && github.sha || 'shared' }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
@@ -237,6 +240,12 @@ jobs:
       needs.gate.outputs.release == 'true'
     runs-on:
       - ubicloud-standard-2-arm
+    # The one thing that genuinely must not run twice at once. `queue: max`
+    # holds up to 100 pending runs in FIFO order instead of the default
+    # `single`, which evicts the pending one — so no release is ever dropped.
+    concurrency:
+      group: release-${{ github.repository }}
+      queue: max
     permissions:
       contents: write # create / update the GitHub Release
       id-token: write # cosign keyless signing + SLSA provenance (Sigstore OIDC)
