@@ -60,7 +60,7 @@ ARG VARIANT_SUFFIX=""
 # Base build environment. The base image is pinned by digest and kept current
 # by Renovate (docker:pinDigests).
 # ---------------------------------------------------------------------------
-FROM ubuntu:26.04@sha256:f3d28607ddd78734bb7f71f117f3c6706c666b8b76cbff7c9ff6e5718d46ff64 AS base
+FROM ubuntu:26.04@sha256:513c074113a871b51a8d16ab445c88779d6452d937a164fb5cc479f32668a41d AS base
 
 ARG DEBIAN_FRONTEND=noninteractive
 
