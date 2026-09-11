@@ -19,7 +19,7 @@ ARG ATF_LEGACY_VERSION=v2.12.0
 ARG OPTEE_VERSION=4.10.0
 # rkbin has no tags/releases, so it is pinned to an exact commit of `master`.
 # renovate: datasource=git-refs depName=rkbin packageName=https://github.com/rockchip-linux/rkbin currentValue=master
-ARG RKBIN_REF=ecb4fcbe954edf38b3ae037d5de6d9f5bccf81f4
+ARG RKBIN_REF=3e288fe814e059dd06833495f845cab04ac20a5c
 
 # ---------------------------------------------------------------------------
 # Per-build selectors (one SoC group per build; defaults reproduce a single
