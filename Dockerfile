@@ -6,7 +6,7 @@
 # ---------------------------------------------------------------------------
 
 # renovate: datasource=github-tags depName=u-boot packageName=u-boot/u-boot versioning=loose
-ARG U_BOOT_VERSION=v2026.04
+ARG U_BOOT_VERSION=v2026.07
 # renovate: datasource=github-tags depName=arm-trusted-firmware packageName=ARM-software/arm-trusted-firmware versioning=loose
 ARG ATF_VERSION=v2.15.0
 # Older TF-A for rk3328/rk3368/rk3399: TF-A releases after v2.12 overflow these
