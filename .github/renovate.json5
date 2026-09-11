@@ -41,6 +41,28 @@
 
   packageRules: [
     {
+      // Every GitHub Action bump lands in one weekly PR. These never reach the
+      // build: `changes` in build.yaml only watches Dockerfile, boards.json and
+      // scripts/, so an action digest can neither build nor release. Landing
+      // them one at a time bought nothing and cost a push to main each -- the
+      // onboarding burst merged 13 PRs in six minutes that way.
+      matchManagers: ['github-actions'],
+      groupName: 'github-actions',
+      schedule: ['before 6am on monday'],
+    },
+    {
+      // Same for base-image digests: the release gate classifies a lone
+      // `FROM ...@sha256:` change as a chore and skips the release, so these
+      // only ever cost a rebuild. One grouped PR a week is enough.
+      matchManagers: ['dockerfile'],
+      matchUpdateTypes: ['digest'],
+      groupName: 'base image digests',
+      schedule: ['before 6am on monday'],
+    },
+    // U-Boot, TF-A, OP-TEE and rkbin are deliberately NOT grouped: each one
+    // cuts a real release, and a grouped PR would make it impossible to tell
+    // which component a given release came from, or to revert just one.
+    {
       // Never build pre-releases (-rc) of U-Boot, ATF or OP-TEE.
       matchManagers: ['custom.regex'],
       matchDepNames: ['u-boot', 'arm-trusted-firmware', 'arm-trusted-firmware-legacy', 'optee_os'],
