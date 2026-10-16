@@ -16,7 +16,7 @@ ARG ATF_VERSION=v2.15.0
 # renovate: datasource=github-tags depName=arm-trusted-firmware-legacy packageName=ARM-software/arm-trusted-firmware versioning=loose
 ARG ATF_LEGACY_VERSION=v2.12.0
 # renovate: datasource=github-tags depName=optee_os packageName=OP-TEE/optee_os versioning=semver
-ARG OPTEE_VERSION=4.10.0
+ARG OPTEE_VERSION=4.11.0
 # rkbin has no tags/releases, so it is pinned to an exact commit of `master`.
 # renovate: datasource=git-refs depName=rkbin packageName=https://github.com/rockchip-linux/rkbin currentValue=master
 ARG RKBIN_REF=3e288fe814e059dd06833495f845cab04ac20a5c
